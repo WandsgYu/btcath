@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Price Loading...</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #2b3139;
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        margin: 0;
+        max-width: 100%;
+        white-space: nowrap;
+      }
+
+      h1 {
+        font-size: 25vw;
+      }
+
+      h2 {
+        font-size: 5vw;
+        color: #cccccc;
+        margin-top: 10px;
+        cursor: pointer; /* Add cursor pointer to indicate clickability */
+      }
+
+      .flash {
+        animation: flash 0.5s ease-out;
+      }
+
+      @keyframes flash {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.8);
+          opacity: 0.5;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      #popup {
+        display: none;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px;
+        background-color: white;
+        border: 2px solid #ccc;
+        z-index: 1000;
+      }
+
+      #popup select {
+        font-size: 16px;
+        margin: 10px 0;
+      }
+
+      #popup input[type="button"] {
+        font-size: 16px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="price">Loading...</h1>
+    <h2 id="max-price">Max: N/A</h2>
+    <h2 id="min-price">Min: N/A</h2>
+
+    <!-- Custom popup for selecting price -->
+    <div id="popup">
+      <div id="popup-title"></div>
+      <select id="price-selection"></select>
+      <input type="button" value="Confirm" id="confirm-button" />
+      <input type="button" value="Cancel" id="cancel-button" />
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const apiUrl =
+          "https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT";
+        let previousPrice = null;
+        let maxPrice = null;
+        let minPrice = null;
+        let isFlashing = false;
+        let currentPrice = null;
+
+        async function fetchPrice() {
+          try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            const price = parseFloat(data.price).toFixed(0);
+            currentPrice = parseFloat(data.price).toFixed(0);
+
+            if (previousPrice !== null) {
+              const priceElement = document.getElementById("price");
+              if (price > previousPrice) {
+                priceElement.style.color = "#14C381";  // 上涨时设置为绿色
+              } else if (price < previousPrice) {
+                priceElement.style.color = "#F6455B";  // 下跌时设置为红色
+              }
+            }
+
+            const priceElement = document.getElementById("price");
+            const numericPrice = parseFloat(price);
+
+            if (
+              (maxPrice === null || numericPrice > maxPrice) ||
+              (minPrice === null || numericPrice < minPrice)
+            ) {
+              if (maxPrice === null || numericPrice > maxPrice) {
+                maxPrice = numericPrice;
+                document.getElementById(
+                  "max-price"
+                ).textContent = `Max: ${maxPrice.toFixed(0)}`;
+              }
+              if (minPrice === null || numericPrice < minPrice) {
+                minPrice = numericPrice;
+                document.getElementById(
+                  "min-price"
+                ).textContent = `Min: ${minPrice.toFixed(0)}`;
+              }
+
+              if (!isFlashing) {
+                isFlashing = true;
+                priceElement.classList.add("flash");
+                setTimeout(() => {
+                  priceElement.classList.remove("flash");
+                  isFlashing = false;
+                }, 1000); // 1 second delay
+              }
+            }
+
+            previousPrice = numericPrice;
+            priceElement.textContent = numericPrice.toFixed(0);
+            document.title = numericPrice.toFixed(0);
+          } catch (error) {
+            // Error handling code removed as per request
+          }
+        }
+
+        function flashPrice() {
+          const priceElement = document.getElementById("price");
+          if (!isFlashing) {
+            isFlashing = true;
+            priceElement.classList.add("flash");
+            setTimeout(() => {
+              priceElement.classList.remove("flash");
+              isFlashing = false;
+            }, 1000); // 1 second delay
+          }
+        }
+
+        fetchPrice();
+        setInterval(fetchPrice, 1000);
+
+        function showPopup(type) {
+          const priceOptions = [200, 400, 500].map(
+            (increment) => parseFloat(currentPrice) + (type === "max" ? increment : -increment)
+          );
+          const selectElement = document.getElementById("price-selection");
+          selectElement.innerHTML = priceOptions
+            .map((option) => `<option value="${option}">${option.toFixed(0)}</option>`)
+            .join("");
+          selectElement.innerHTML += '<option value="custom">Custom</option>';
+
+          document.getElementById("popup-title").textContent =
+            "Set new " + type + " price:";
+          document.getElementById("popup").style.display = "block";
+
+          document.getElementById("confirm-button").onclick = function () {
+            const selectedPrice = selectElement.value;
+            if (selectedPrice === "custom") {
+              const userInput = prompt("Enter custom price:");
+              if (type === "max") {
+                maxPrice = parseFloat(userInput);
+                document.getElementById("max-price").textContent = `Max: ${maxPrice.toFixed(0)}`;
+              } else {
+                minPrice = parseFloat(userInput);
+                document.getElementById("min-price").textContent = `Min: ${minPrice.toFixed(0)}`;
+              }
+            } else {
+              if (type === "max") {
+                maxPrice = parseFloat(selectedPrice);
+                document.getElementById("max-price").textContent = `Max: ${maxPrice.toFixed(0)}`;
+              } else {
+                minPrice = parseFloat(selectedPrice);
+                document.getElementById("min-price").textContent = `Min: ${minPrice.toFixed(0)}`;
+              }
+            }
+            document.getElementById("popup").style.display = "none";
+          };
+
+          document.getElementById("cancel-button").onclick = function () {
+            document.getElementById("popup").style.display = "none";
+          };
+        }
+
+        document.getElementById("max-price").addEventListener("click", () => {
+          showPopup("max");
+        });
+
+        document.getElementById("min-price").addEventListener("click", () => {
+          showPopup("min");
+        });
+      });
+    </script>
+  </body>
+</html>
