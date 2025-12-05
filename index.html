@@ -27,7 +27,7 @@
       }
 
       h1 {
-        font-size: 25vw;
+        font-size: 30vw;
       }
 
       h2 {
@@ -164,12 +164,12 @@
             setTimeout(() => {
               priceElement.classList.remove("flash");
               isFlashing = false;
-            }, 2000); // 1 second delay
+            }, 2000); 
           }
         }
 
         fetchPrice();
-        setInterval(fetchPrice, 1000);
+        setInterval(fetchPrice, 2000);
 
         function showPopup(type) {
           const priceOptions = [200, 400, 500].map(
