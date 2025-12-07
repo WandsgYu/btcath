@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -34,7 +33,7 @@
         font-size: 5vw;
         color: #cccccc;
         margin-top: 10px;
-        cursor: pointer; /* Add cursor pointer to indicate clickability */
+        cursor: pointer;
       }
 
       .flash {
@@ -77,6 +76,17 @@
         font-size: 16px;
         margin-top: 10px;
       }
+
+      #sound-test {
+        margin-top: 20px;
+        font-size: 18px;
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 8px;
+      }
     </style>
   </head>
   <body>
@@ -84,7 +94,10 @@
     <h2 id="max-price">Max: N/A</h2>
     <h2 id="min-price">Min: N/A</h2>
 
-    <!-- Custom popup for selecting price -->
+    <button id="sound-test">🔊 测试警报声音</button>
+
+    <audio id="alert-sound" src="alert.mp3"></audio>
+
     <div id="popup">
       <div id="popup-title"></div>
       <select id="price-selection"></select>
@@ -102,6 +115,19 @@
         let isFlashing = false;
         let currentPrice = null;
 
+        const alertSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+        const testButton = document.getElementById("sound-test");
+
+        testButton.addEventListener("click", () => {
+          alertSound.volume = 1.0;
+          alertSound.play();
+        });
+
+        function playAlert() {
+          alertSound.currentTime = 0;
+          alertSound.play();
+        }
+
         async function fetchPrice() {
           try {
             const response = await fetch(apiUrl);
@@ -112,14 +138,25 @@
             if (previousPrice !== null) {
               const priceElement = document.getElementById("price");
               if (price > previousPrice) {
-                priceElement.style.color = "#14C381";  // 上涨时设置为绿色
+                priceElement.style.color = "#14C381";
               } else if (price < previousPrice) {
-                priceElement.style.color = "#F6455B";  // 下跌时设置为红色
+                priceElement.style.color = "#F6455B";
               }
             }
 
             const priceElement = document.getElementById("price");
             const numericPrice = parseFloat(price);
+
+            let triggered = false;
+
+            if (maxPrice !== null && numericPrice > maxPrice) {
+              triggered = true;
+            }
+            if (minPrice !== null && numericPrice < minPrice) {
+              triggered = true;
+            }
+
+            if (triggered) playAlert();
 
             if (
               (maxPrice === null || numericPrice > maxPrice) ||
@@ -144,28 +181,14 @@
                 setTimeout(() => {
                   priceElement.classList.remove("flash");
                   isFlashing = false;
-                }, 1000); // 1 second delay
+                }, 1000);
               }
             }
 
             previousPrice = numericPrice;
             priceElement.textContent = numericPrice.toFixed(0);
             document.title = numericPrice.toFixed(0);
-          } catch (error) {
-            // Error handling code removed as per request
-          }
-        }
-
-        function flashPrice() {
-          const priceElement = document.getElementById("price");
-          if (!isFlashing) {
-            isFlashing = true;
-            priceElement.classList.add("flash");
-            setTimeout(() => {
-              priceElement.classList.remove("flash");
-              isFlashing = false;
-            }, 2000); 
-          }
+          } catch (error) {}
         }
 
         fetchPrice();
