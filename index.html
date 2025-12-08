@@ -77,24 +77,12 @@
         margin-top: 10px;
       }
 
-      #sound-test {
-        margin-top: 20px;
-        font-size: 18px;
-        padding: 10px 20px;
-        cursor: pointer;
-        background-color: #4a90e2;
-        color: white;
-        border: none;
-        border-radius: 8px;
-      }
     </style>
   </head>
   <body>
     <h1 id="price">Loading...</h1>
     <h2 id="max-price">Max: N/A</h2>
     <h2 id="min-price">Min: N/A</h2>
-
-    <button id="sound-test">🔊 测试警报声音</button>
 
     <audio id="alert-sound" src="alert.mp3"></audio>
 
@@ -116,12 +104,6 @@
         let currentPrice = null;
 
         const alertSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-        const testButton = document.getElementById("sound-test");
-
-        testButton.addEventListener("click", () => {
-          alertSound.volume = 1.0;
-          alertSound.play();
-        });
 
         function playAlert() {
           alertSound.currentTime = 0;
@@ -135,8 +117,21 @@
             const price = parseFloat(data.price).toFixed(0);
             currentPrice = parseFloat(data.price).toFixed(0);
 
+            const priceElement = document.getElementById("price");
+            const numericPrice = parseFloat(price);
+
+            // 初始设定 max / min
+            if (maxPrice === null && minPrice === null) {
+              maxPrice = numericPrice * 1.002;
+              minPrice = numericPrice * 0.998;
+
+              document.getElementById("max-price").textContent =
+                `Max: ${maxPrice.toFixed(0)}`;
+              document.getElementById("min-price").textContent =
+                `Min: ${minPrice.toFixed(0)}`;
+            }
+
             if (previousPrice !== null) {
-              const priceElement = document.getElementById("price");
               if (price > previousPrice) {
                 priceElement.style.color = "#14C381";
               } else if (price < previousPrice) {
@@ -144,35 +139,24 @@
               }
             }
 
-            const priceElement = document.getElementById("price");
-            const numericPrice = parseFloat(price);
-
             let triggered = false;
-
-            if (maxPrice !== null && numericPrice > maxPrice) {
-              triggered = true;
-            }
-            if (minPrice !== null && numericPrice < minPrice) {
-              triggered = true;
-            }
-
+            if (numericPrice > maxPrice) triggered = true;
+            if (numericPrice < minPrice) triggered = true;
             if (triggered) playAlert();
 
             if (
-              (maxPrice === null || numericPrice > maxPrice) ||
-              (minPrice === null || numericPrice < minPrice)
+              numericPrice > maxPrice ||
+              numericPrice < minPrice
             ) {
-              if (maxPrice === null || numericPrice > maxPrice) {
+              if (numericPrice > maxPrice) {
                 maxPrice = numericPrice;
-                document.getElementById(
-                  "max-price"
-                ).textContent = `Max: ${maxPrice.toFixed(0)}`;
+                document.getElementById("max-price").textContent =
+                  `Max: ${maxPrice.toFixed(0)}`;
               }
-              if (minPrice === null || numericPrice < minPrice) {
+              if (numericPrice < minPrice) {
                 minPrice = numericPrice;
-                document.getElementById(
-                  "min-price"
-                ).textContent = `Min: ${minPrice.toFixed(0)}`;
+                document.getElementById("min-price").textContent =
+                  `Min: ${minPrice.toFixed(0)}`;
               }
 
               if (!isFlashing) {
@@ -196,11 +180,16 @@
 
         function showPopup(type) {
           const priceOptions = [200, 400, 500].map(
-            (increment) => parseFloat(currentPrice) + (type === "max" ? increment : -increment)
+            (increment) =>
+              parseFloat(currentPrice) +
+              (type === "max" ? increment : -increment)
           );
           const selectElement = document.getElementById("price-selection");
           selectElement.innerHTML = priceOptions
-            .map((option) => `<option value="${option}">${option.toFixed(0)}</option>`)
+            .map(
+              (option) =>
+                `<option value="${option}">${option.toFixed(0)}</option>`
+            )
             .join("");
           selectElement.innerHTML += '<option value="custom">Custom</option>';
 
@@ -214,18 +203,22 @@
               const userInput = prompt("Enter custom price:");
               if (type === "max") {
                 maxPrice = parseFloat(userInput);
-                document.getElementById("max-price").textContent = `Max: ${maxPrice.toFixed(0)}`;
+                document.getElementById("max-price").textContent =
+                  `Max: ${maxPrice.toFixed(0)}`;
               } else {
                 minPrice = parseFloat(userInput);
-                document.getElementById("min-price").textContent = `Min: ${minPrice.toFixed(0)}`;
+                document.getElementById("min-price").textContent =
+                  `Min: ${minPrice.toFixed(0)}`;
               }
             } else {
               if (type === "max") {
                 maxPrice = parseFloat(selectedPrice);
-                document.getElementById("max-price").textContent = `Max: ${maxPrice.toFixed(0)}`;
+                document.getElementById("max-price").textContent =
+                  `Max: ${maxPrice.toFixed(0)}`;
               } else {
                 minPrice = parseFloat(selectedPrice);
-                document.getElementById("min-price").textContent = `Min: ${minPrice.toFixed(0)}`;
+                document.getElementById("min-price").textContent =
+                  `Min: ${minPrice.toFixed(0)}`;
               }
             }
             document.getElementById("popup").style.display = "none";
@@ -236,13 +229,12 @@
           };
         }
 
-        document.getElementById("max-price").addEventListener("click", () => {
-          showPopup("max");
-        });
-
-        document.getElementById("min-price").addEventListener("click", () => {
-          showPopup("min");
-        });
+        document
+          .getElementById("max-price")
+          .addEventListener("click", () => showPopup("max"));
+        document
+          .getElementById("min-price")
+          .addEventListener("click", () => showPopup("min"));
       });
     </script>
   </body>
